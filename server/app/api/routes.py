@@ -1,0 +1,63 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.api.deps import current_user
+from app.core.db import get_db
+from app.models.entities import Clip, User, Video
+from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
+from app.schemas.video import ClipCreate, VideoCreate
+from app.services.security import create_access_token, hash_password, verify_password
+
+router = APIRouter()
+
+
+@router.post("/auth/register", response_model=TokenResponse)
+def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+    if db.scalar(select(User).where(User.email == payload.email)):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+    user = User(email=payload.email, password_hash=hash_password(payload.password), full_name=payload.full_name)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return TokenResponse(access_token=create_access_token(str(user.id)))
+
+
+@router.post("/auth/login", response_model=TokenResponse)
+def login(payload: LoginRequest, db: Session = Depends(get_db)):
+    user = db.scalar(select(User).where(User.email == payload.email))
+    if not user or not verify_password(payload.password, user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    return TokenResponse(access_token=create_access_token(str(user.id)))
+
+
+@router.post("/videos")
+def create_video(
+    payload: VideoCreate,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    video = Video(user_id=user.id, **payload.model_dump())
+    db.add(video)
+    db.commit()
+    db.refresh(video)
+    return video
+
+
+@router.get("/videos")
+def list_videos(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    return db.scalars(select(Video).where(Video.user_id == user.id)).all()
+
+
+@router.post("/videos/{video_id}/clips")
+def create_clip(video_id: str, payload: ClipCreate, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    clip = Clip(video_id=video_id, user_id=user.id, **payload.model_dump())
+    db.add(clip)
+    db.commit()
+    db.refresh(clip)
+    return clip
+
+
+@router.get("/clips")
+def list_clips(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    return db.scalars(select(Clip).where(Clip.user_id == user.id)).all()
