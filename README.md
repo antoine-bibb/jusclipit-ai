@@ -1,107 +1,81 @@
 # Jus Clip It
 
-Jus Clip It is an AI-powered SaaS platform that automatically converts long-form videos into viral short-form clips.
+Jus Clip It is a production-ready SaaS starter that turns long-form videos into viral short-form clips.
 
-The platform is designed for creators, podcasters, streamers, and media teams who want to quickly repurpose long content into engaging clips optimized for social media.
+## Monorepo Layout
 
----
+- `client/` — Next.js + React + Tailwind front-end
+- `server/` — FastAPI API (auth, uploads, clip orchestration)
+- `workers/` — Celery worker for async video jobs
+- `ai/` — AI pipelines (transcription, scene/virality scoring)
+- `video-processing/` — FFmpeg/OpenCV/MediaPipe reframing + caption burn-in
+- `database/` — PostgreSQL schema + seed
+- `docs/` — architecture and setup documentation
 
-## Core Features
+## Quick Start
 
-AI Clip Detection
+### 1) Prerequisites
 
-Automatically identifies engaging moments in long videos using speech analysis, emotional detection, and scene segmentation.
+- Docker + Docker Compose
+- Node.js 20+
+- Python 3.11+
 
-Virality Scoring
+### 2) Environment
 
-Each detected clip is ranked using an AI virality scoring algorithm.
+```bash
+cp .env.example .env
+```
 
-Smart Vertical Reframing
+Set `OPENAI_API_KEY` and other required values.
 
-The system dynamically tracks speakers and automatically reframes widescreen video into vertical format optimized for TikTok, Instagram Reels, and YouTube Shorts.
+### 3) Start infra services
 
-Custom Caption Editor
+```bash
+docker compose up -d postgres redis minio
+```
 
-Users can customize subtitles similar to CapCut with:
+### 4) Run backend
 
-- font selection
-- text color
-- outlines
-- borders
-- drop shadows
-- animations
-- word-by-word highlighting
-- positioning
+```bash
+cd server
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload --port 8000
+```
 
-AI Transcription
+### 5) Run worker
 
-Videos are transcribed using speech recognition to power caption generation and clip detection.
+```bash
+cd workers
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+celery -A worker.celery_app worker -l info
+```
 
----
+### 6) Run frontend
 
-## Tech Stack
+```bash
+cd client
+npm install
+npm run dev
+```
 
-Frontend
+App: `http://localhost:3000`  
+API docs: `http://localhost:8000/docs`
 
-Next.js  
-React  
-TailwindCSS  
+## SaaS Features Included
 
-Backend
+- JWT authentication and user accounts
+- Subscription tiers + quotas
+- S3-compatible object storage support (AWS S3/MinIO)
+- Async processing pipeline with Redis + Celery
+- AI clip candidate extraction, ranking, vertical reframing, and caption presets
+- Dashboard with navbar user menu, credits dropdown, upload workflow, and old clips library
+- Automatic clip retention cleanup (clips older than 30 days are removed when clip library endpoints are queried)
+- Login/signup experience with visible brand logo, shared navbar/footer shell, and authenticated dashboard
+- Stripe-ready checkout endpoint for paid subscription tiers (Pro/Scale purchase buttons)
 
-FastAPI  
-Python  
+## License
 
-AI Pipeline
-
-Whisper transcription  
-OpenCV face tracking  
-MediaPipe face detection  
-PySceneDetect scene detection  
-
-Video Processing
-
-FFmpeg  
-
-Infrastructure
-
-PostgreSQL  
-Redis  
-Celery  
-
----
-
-## Platform Workflow
-
-1 Upload video
-
-2 AI transcribes video
-
-3 AI detects scenes and engagement signals
-
-4 AI generates candidate clips
-
-5 Clips receive virality scores
-
-6 Clips are automatically reframed to vertical format
-
-7 Captions are generated and customizable
-
-8 Clips exported for social media
-
----
-
-## Future Features
-
-AI hook generation  
-Direct social media publishing  
-Thumbnail generation  
-Team collaboration  
-Cloud rendering  
-Subscription billing  
-
----
-
-## Vision
-
-Jus Clip It aims to become the easiest way for creators to turn long-form content into viral short-form clips using AI automation.
+MIT
