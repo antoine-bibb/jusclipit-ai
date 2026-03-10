@@ -71,7 +71,9 @@ API docs: `http://localhost:8000/docs`
 - S3-compatible object storage support (AWS S3/MinIO)
 - Async processing pipeline with Redis + Celery
 - AI clip candidate extraction, ranking, vertical reframing, and caption presets
-- Dashboard for videos/clips and caption customization controls
+- Dashboard with navbar user menu, credits dropdown, upload workflow, and old clips library
+- Automatic clip retention cleanup (clips older than 30 days are removed when clip library endpoints are queried)
+- Login experience with visible brand logo and a global branded footer
 
 ## License
 

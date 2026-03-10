@@ -31,6 +31,7 @@ class Video(Base):
     duration_seconds: Mapped[int | None] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(32), default="uploaded")
     transcript: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
 
 class Clip(Base):
@@ -45,3 +46,4 @@ class Clip(Base):
     processing_status: Mapped[str] = mapped_column(String(32), default="pending")
     caption_style: Mapped[dict | None] = mapped_column(JSON)
     output_url: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
