@@ -12,8 +12,5 @@ export default function Home() {
     return <LoginCard onLogin={() => setAuthenticated(true)} />
   }
 
-import { Dashboard } from '../components/dashboard'
-
-export default function Home() {
   return <Dashboard />
 }
