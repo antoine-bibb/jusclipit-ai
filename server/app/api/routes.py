@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -13,6 +14,8 @@ from app.schemas.video import ClipCreate, VideoCreate
 from app.services.retention import cleanup_expired_clips
 from app.services.security import create_access_token, hash_password, verify_password
 from app.services.uploads import save_upload
+from app.schemas.video import ClipCreate, VideoCreate
+from app.services.security import create_access_token, hash_password, verify_password
 
 router = APIRouter()
 
@@ -87,6 +90,9 @@ def upload_video(
 @router.get("/videos")
 def list_videos(user: User = Depends(current_user), db: Session = Depends(get_db)):
     return db.scalars(select(Video).where(Video.user_id == user.id).order_by(Video.created_at.desc())).all()
+@router.get("/videos")
+def list_videos(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    return db.scalars(select(Video).where(Video.user_id == user.id)).all()
 
 
 @router.post("/videos/{video_id}/clips")
@@ -119,3 +125,4 @@ def clip_library(user: User = Depends(current_user), db: Session = Depends(get_d
         }
         for clip in clips
     ]
+    return db.scalars(select(Clip).where(Clip.user_id == user.id)).all()
