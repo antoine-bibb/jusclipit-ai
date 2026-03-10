@@ -73,7 +73,8 @@ API docs: `http://localhost:8000/docs`
 - AI clip candidate extraction, ranking, vertical reframing, and caption presets
 - Dashboard with navbar user menu, credits dropdown, upload workflow, and old clips library
 - Automatic clip retention cleanup (clips older than 30 days are removed when clip library endpoints are queried)
-- Login experience with visible brand logo and a global branded footer
+- Login/signup experience with visible brand logo, shared navbar/footer shell, and authenticated dashboard
+- Stripe-ready checkout endpoint for paid subscription tiers (Pro/Scale purchase buttons)
 
 ## License
 

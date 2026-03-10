@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     s3_secret_key: str
     s3_bucket: str
     s3_region: str = "us-east-1"
+    stripe_secret_key: str = ""
+    stripe_success_url: str = "http://localhost:3000/billing/success"
+    stripe_cancel_url: str = "http://localhost:3000/billing/cancel"
 
 
 settings = Settings()

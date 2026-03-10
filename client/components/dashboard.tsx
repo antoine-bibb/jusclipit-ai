@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+
 import { Footer } from './footer'
 import { Navbar } from './navbar'
 
-// --- Data Structures ---
 type Clip = {
   id: string
   title: string
@@ -12,29 +12,40 @@ type Clip = {
   expiresInDays: number
 }
 
+type Tier = {
+  id: 'free' | 'pro' | 'scale'
+  name: string
+  price: string
+  details: string
+}
+
 const initialClips: Clip[] = [
   { id: '1', title: 'Podcast Hook Segment', virality: 91, expiresInDays: 23 },
   { id: '2', title: 'Interview Mic Drop Moment', virality: 87, expiresInDays: 14 },
 ]
 
-const tiers = [
-  { name: 'Free', quota: '60 minutes/month', price: '$0' },
-  { name: 'Pro', quota: '600 minutes/month', price: '$49' },
-  { name: 'Scale', quota: '3000 minutes/month', price: '$199' },
+const tiers: Tier[] = [
+  { id: 'free', name: 'Free', price: '$0/mo', details: '60 processing minutes' },
+  { id: 'pro', name: 'Pro', price: '$49/mo', details: '600 processing minutes' },
+  { id: 'scale', name: 'Scale', price: '$199/mo', details: '3000 processing minutes' },
 ]
 
-const presets = ['CapCut Neon', 'Kinetic Pop', 'Bold Outline', 'Minimal Clean']
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
-// --- Main Component ---
-export function Dashboard() {
-  const [clips, setClips] = useState(initialClips)
+type DashboardProps = {
+  userName: string
+}
+
+export function Dashboard({ userName }: DashboardProps) {
+  const [clips, setClips] = useState<Clip[]>(initialClips)
   const [videoTitle, setVideoTitle] = useState('')
 
   const onUpload = () => {
     if (!videoTitle.trim()) return
+
     setClips((prev) => [
       {
-        id: crypto.randomUUID(),
+        id: `clip-${Date.now()}`,
         title: `${videoTitle} (queued)`,
         virality: 75,
         expiresInDays: 30,
@@ -44,21 +55,46 @@ export function Dashboard() {
     setVideoTitle('')
   }
 
+  const startCheckout = async (plan: Tier['id']) => {
+    if (plan === 'free') return
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('jusclipit_token') : null
+      const res = await fetch(`${API_BASE}/api/billing/checkout?plan=${plan}`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) {
+        throw new Error('Checkout failed')
+      }
+      const data = (await res.json()) as { checkout_url: string }
+      window.location.href = data.checkout_url
+    } catch (error) {
+      console.error(error)
+      alert('Unable to start Stripe checkout right now. Please try again.')
+    }
+  }
+
   return (
     <main className="mx-auto min-h-screen max-w-6xl p-8">
-      {/* Top Navigation Section */}
-      <Navbar userName="User" creditsRemaining={420} />
+      <Navbar userName={userName} creditsRemaining={420} />
 
-      {/* Brand Header Section */}
-      <header className="mb-8 mt-8 flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 p-6">
-        <div>
-          <h1 className="text-3xl font-bold text-red-600">Jus Clip It</h1>
-          <p className="text-zinc-300">Auto-transcribe, detect viral moments, and export social-ready clips.</p>
-        </div>
-        <img src="/logo.svg" alt="Jus Clip It Logo" className="h-16 w-auto" />
-      </header>
+      <section className="mb-6 grid gap-4 md:grid-cols-3">
+        {tiers.map((tier) => (
+          <article key={tier.id} className="rounded-xl border border-zinc-700 bg-zinc-900 p-5">
+            <h3 className="text-xl font-semibold">{tier.name}</h3>
+            <p className="mt-1 text-brandRed">{tier.price}</p>
+            <p className="mb-4 mt-1 text-sm text-zinc-400">{tier.details}</p>
+            <button
+              onClick={() => startCheckout(tier.id)}
+              disabled={tier.id === 'free'}
+              className="w-full rounded-lg border border-brandRed px-4 py-2 font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {tier.id === 'free' ? 'Current Plan' : `Buy ${tier.name}`}
+            </button>
+          </article>
+        ))}
+      </section>
 
-      {/* Upload and Customization Grid */}
       <section className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-xl border border-zinc-700 bg-zinc-900 p-6">
           <h2 className="mb-4 text-xl font-semibold">Upload Long-form Video</h2>
@@ -67,11 +103,11 @@ export function Dashboard() {
             <input
               value={videoTitle}
               onChange={(e) => setVideoTitle(e.target.value)}
-              className="w-full rounded-lg bg-zinc-800 p-3 text-white"
+              className="w-full rounded-lg bg-zinc-800 p-3"
               placeholder="Video title"
             />
             <input type="file" accept="video/*" className="w-full rounded-lg bg-zinc-800 p-3" />
-            <button onClick={onUpload} className="rounded-lg bg-red-600 px-5 py-3 font-semibold">
+            <button onClick={onUpload} className="rounded-lg bg-brandRed px-5 py-3 font-semibold">
               Upload & Process
             </button>
           </div>
@@ -80,82 +116,31 @@ export function Dashboard() {
         <article className="rounded-xl border border-zinc-700 bg-zinc-900 p-6">
           <h2 className="mb-4 text-xl font-semibold">Caption Customization</h2>
           <ul className="space-y-2 text-zinc-300">
-            <li>• Font + color + outline + shadow</li>
-            <li>• Word highlighting + animations</li>
-            <li>• Position + opacity + background boxes</li>
-            <li>• CapCut-like presets</li>
+            <li>- Font + color + outline + shadow</li>
+            <li>- Word highlighting + animations</li>
+            <li>- Position + opacity + background boxes</li>
+            <li>- CapCut-like presets</li>
           </ul>
         </article>
       </section>
 
-      {/* Pricing Tiers Section */}
-      <section className="mt-8 grid gap-4 md:grid-cols-3">
-        {tiers.map((tier) => (
-          <article key={tier.name} className="rounded-xl border border-zinc-700 bg-zinc-900 p-4">
-            <h2 className="text-xl font-semibold">{tier.name}</h2>
-            <p className="text-red-600">{tier.price}</p>
-            <p className="text-sm text-zinc-400">{tier.quota}</p>
-          </article>
-        ))}
-      </section>
-
-      {/* Library and Tech Details Grid */}
-      <section className="mt-8 grid gap-6 lg:grid-cols-2">
-        {/* Clips Library */}
-        <article className="rounded-xl border border-zinc-700 bg-zinc-900 p-6">
-          <h2 className="mb-4 text-xl font-semibold">Old Clips Library</h2>
-          <p className="mb-4 text-sm text-zinc-400">Stored clips automatically expire after 30 days.</p>
-          <div className="space-y-3">
-            {clips.map((clip) => (
-              <div key={clip.id} className="flex items-center justify-between rounded-lg bg-zinc-800 p-3">
-                <div>
-                  <p className="font-medium">{clip.title}</p>
-                  <p className="text-xs text-zinc-400">Virality: {clip.virality}/100</p>
-                </div>
-                <p className="text-sm text-red-600">Expires in {clip.expiresInDays} days</p>
+      <section className="mt-8 rounded-xl border border-zinc-700 bg-zinc-900 p-6">
+        <h2 className="mb-4 text-xl font-semibold">Old Clips Library</h2>
+        <p className="mb-4 text-sm text-zinc-400">Stored clips automatically expire after 30 days.</p>
+        <div className="space-y-3">
+          {clips.map((clip) => (
+            <div key={clip.id} className="flex items-center justify-between rounded-lg bg-zinc-800 p-3">
+              <div>
+                <p className="font-medium">{clip.title}</p>
+                <p className="text-xs text-zinc-400">Virality: {clip.virality}/100</p>
               </div>
-            ))}
-          </div>
-        </article>
-
-        {/* AI Pipeline Info */}
-        <article className="rounded-xl border border-zinc-700 bg-zinc-900 p-6">
-          <h3 className="mb-4 text-xl font-semibold">AI Processing Pipeline</h3>
-          <ul className="list-disc space-y-2 pl-5 text-zinc-300">
-            <li>Whisper transcription + timestamp segmentation</li>
-            <li>PySceneDetect engaging scene detection</li>
-            <li>NLP virality scoring and clip ranking</li>
-            <li>MediaPipe + OpenCV smart 9:16 reframing</li>
-            <li>FFmpeg export presets for Reels/TikTok/Shorts</li>
-          </ul>
-        </article>
+              <p className="text-sm text-brandRed">Expires in {clip.expiresInDays} days</p>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* Caption Studio Detailed Info */}
-      <section className="mt-8">
-        <article className="rounded-xl border border-zinc-700 bg-zinc-900 p-6">
-          <h3 className="mb-4 text-xl font-semibold">Caption Studio</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <span>Font Family</span><span className="text-zinc-400">Montserrat</span>
-            <span>Text Color</span><span className="text-zinc-400">#FFFFFF</span>
-            <span>Outline</span><span className="text-zinc-400">#000 / 3px</span>
-            <span>Animation</span><span className="text-zinc-400">Pop + Word Highlight</span>
-            <span>Position</span><span className="text-zinc-400">Bottom Safe Area</span>
-            <span>Background Box</span><span className="text-zinc-400">Enabled</span>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {presets.map((preset) => (
-              <span key={preset} className="rounded-full bg-zinc-800 px-3 py-1 text-xs">
-                {preset}
-              </span>
-            ))}
-          </div>
-        </article>
-      </section>
-
-      <div className="mt-8">
-        <Footer />
-      </div>
+      <Footer />
     </main>
   )
 }
